@@ -6,6 +6,7 @@ Application web d'extraction de texte à partir d'images utilisant l'intelligenc
 ![Flask](https://img.shields.io/badge/Flask-2.3-green.svg)
 ![EasyOCR](https://img.shields.io/badge/EasyOCR-1.6-orange.svg)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)
+![CI/CD](https://github.com/iyedM/EdiScan/actions/workflows/ci-cd.yml/badge.svg)
 
 ## ✨ Fonctionnalités
 
@@ -150,6 +151,54 @@ docker-compose down -v
 
 ---
 
+## 🔄 CI/CD Pipeline (GitHub Actions)
+
+Le projet inclut un pipeline CI/CD automatisé :
+
+### Pipeline automatique (sur push/PR)
+
+```
+📥 Push/PR → 🧪 Lint & Test → 🐳 Build Docker → 📤 Push Docker Hub → 🚀 Release
+```
+
+| Étape | Description | Déclencheur |
+|-------|-------------|-------------|
+| **Lint & Test** | Vérification du code Python | Push/PR |
+| **Build Docker** | Construction de l'image | Push/PR |
+| **Push Docker Hub** | Publication de l'image | Push sur `main` ou tag `v*` |
+| **Release** | Création release GitHub | Tag `v*` |
+
+### Configuration requise
+
+Pour activer le push sur Docker Hub, ajoutez ces secrets dans GitHub :
+
+1. Allez dans **Settings** → **Secrets and variables** → **Actions**
+2. Ajoutez :
+   - `DOCKERHUB_USERNAME` : Votre username Docker Hub
+   - `DOCKERHUB_TOKEN` : Token d'accès Docker Hub
+
+### Créer une release
+
+```bash
+# Créer un tag de version
+git tag v1.0.0
+git push origin v1.0.0
+
+# → Déclenche automatiquement:
+#   - Build Docker
+#   - Push sur Docker Hub (tag v1.0.0 + latest)
+#   - Création release GitHub
+```
+
+### Workflow manuel
+
+Vous pouvez aussi déclencher manuellement un build :
+1. Allez dans **Actions** → **Docker Publish (Manual)**
+2. Cliquez **Run workflow**
+3. Entrez le tag souhaité
+
+---
+
 ## 📁 Structure du projet
 
 ```
@@ -168,6 +217,10 @@ EdiScan/
 ├── processed/              # Images traitées (auto-généré)
 ├── models/                 # Modèles EasyOCR (auto-téléchargé)
 ├── ediscan.db              # Base de données SQLite (auto-généré)
+├── .github/
+│   └── workflows/
+│       ├── ci-cd.yml           # 🔄 Pipeline CI/CD
+│       └── docker-publish.yml  # 🐳 Publish manuel
 ├── Dockerfile              # 🐳 Image Docker
 ├── docker-compose.yml      # 🐳 Orchestration
 ├── .dockerignore           # 🐳 Fichiers ignorés
