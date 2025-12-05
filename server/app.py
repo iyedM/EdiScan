@@ -73,6 +73,14 @@ def init_database():
         )
     ''')
     
+    # Migration: Ajouter la colonne image_hash si elle n'existe pas
+    try:
+        cursor.execute('ALTER TABLE history ADD COLUMN image_hash TEXT')
+        print("📦 Migration: colonne image_hash ajoutée")
+    except sqlite3.OperationalError:
+        # La colonne existe déjà
+        pass
+    
     # Table cache pour éviter de re-OCR les mêmes images
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ocr_cache (
