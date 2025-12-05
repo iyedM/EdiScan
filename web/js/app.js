@@ -1,8 +1,3 @@
-/* =========================================
-   EdiScan - JavaScript Application
-   ========================================= */
-
-// === DOM ELEMENTS ===
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const submitBtn = document.getElementById('submit-btn');
@@ -17,26 +12,22 @@ const fileCountBadge = document.getElementById('file-count');
 const fileList = document.getElementById('file-list');
 const fileListItems = document.getElementById('file-list-items');
 
-// === QUICK MODE ===
 function setQuickMode() {
     if (quickModeInput) quickModeInput.value = 'on';
 }
 
-// Reset quick mode on normal submit
 if (submitBtn) {
     submitBtn.addEventListener('click', () => {
         if (quickModeInput) quickModeInput.value = 'off';
     });
 }
 
-// === CONFIDENCE SLIDER ===
 if (confidenceSlider) {
     confidenceSlider.addEventListener('input', (e) => {
         confidenceValue.textContent = Math.round(e.target.value * 100) + '%';
     });
 }
 
-// === DRAG & DROP ===
 if (dropZone) {
     dropZone.addEventListener('click', () => fileInput.click());
 
@@ -60,7 +51,6 @@ if (dropZone) {
     });
 }
 
-// === FILE INPUT ===
 if (fileInput) {
     fileInput.addEventListener('change', e => {
         if (e.target.files.length) {
@@ -69,7 +59,6 @@ if (fileInput) {
     });
 }
 
-// === FILE HANDLER (Multi-file) ===
 function handleFilesSelect(files) {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/bmp', 'image/tiff', 'image/webp'];
     const validFiles = [];
@@ -85,13 +74,11 @@ function handleFilesSelect(files) {
         return;
     }
     
-    // Update file count badge
     if (fileCountBadge) {
         fileCountBadge.textContent = validFiles.length;
         fileCountBadge.style.display = 'inline';
     }
     
-    // Show file list
     if (fileList && fileListItems) {
         fileListItems.innerHTML = '';
         validFiles.forEach(file => {
@@ -102,7 +89,6 @@ function handleFilesSelect(files) {
         fileList.style.display = 'block';
     }
     
-    // Show preview for first file
     if (validFiles.length === 1) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -122,7 +108,6 @@ function handleFilesSelect(files) {
         };
         reader.readAsDataURL(validFiles[0]);
     } else {
-        // Multiple files - hide single preview
         const imageEmpty = document.getElementById('image-empty');
         if (imageEmpty) {
             imageEmpty.innerHTML = `<div class="empty-icon">📁</div><p>${validFiles.length} fichiers sélectionnés</p>`;
@@ -130,12 +115,10 @@ function handleFilesSelect(files) {
         }
     }
     
-    // Enable buttons
     if (submitBtn) submitBtn.disabled = false;
     if (quickBtn) quickBtn.disabled = false;
 }
 
-// === CLEAR FILES ===
 function clearFiles() {
     if (fileInput) fileInput.value = '';
     if (fileCountBadge) fileCountBadge.style.display = 'none';
@@ -154,7 +137,6 @@ function clearFiles() {
     if (previewDisplay) previewDisplay.classList.add('image-hidden');
 }
 
-// === FORM SUBMIT ===
 if (uploadForm) {
     uploadForm.addEventListener('submit', () => {
         const isQuickMode = quickModeInput && quickModeInput.value === 'on';
@@ -163,9 +145,9 @@ if (uploadForm) {
         
         if (loadingText) {
             if (fileCount > 1) {
-                loadingText.textContent = `⚡ Traitement de ${fileCount} images...`;
+                loadingText.textContent = `Traitement de ${fileCount} images...`;
             } else if (isQuickMode) {
-                loadingText.textContent = '⚡ Scan rapide en cours...';
+                loadingText.textContent = 'Scan rapide...';
             } else {
                 loadingText.textContent = 'Analyse en cours...';
             }
@@ -176,7 +158,6 @@ if (uploadForm) {
     });
 }
 
-// === LOADING ANIMATION ===
 function animateLoadingSteps(isQuick = false) {
     const steps = ['step-1', 'step-2', 'step-3', 'step-4'];
     let current = 0;
@@ -210,7 +191,6 @@ function animateLoadingSteps(isQuick = false) {
     }, delay);
 }
 
-// === IMAGE TOGGLE ===
 function showImage(type) {
     const tabs = document.querySelectorAll('.image-tab');
     tabs.forEach(tab => tab.classList.remove('active'));
@@ -228,18 +208,15 @@ function showImage(type) {
     }
 }
 
-// === BATCH RESULTS ===
 function showBatchResult(index) {
     if (typeof batchData === 'undefined') return;
     
     const result = batchData[index];
     if (!result) return;
     
-    // Update text output
     const textOutput = document.getElementById('text-output');
     if (textOutput) textOutput.textContent = result.text;
     
-    // Update stats
     const statWords = document.getElementById('stat-words');
     const statLines = document.getElementById('stat-lines');
     const statChars = document.getElementById('stat-chars');
@@ -250,7 +227,6 @@ function showBatchResult(index) {
     if (statChars) statChars.textContent = result.stats.char_count;
     if (statDetections) statDetections.textContent = result.stats.detection_count;
     
-    // Highlight active batch item
     document.querySelectorAll('.batch-item').forEach((item, i) => {
         item.classList.toggle('active', i === index);
     });
@@ -264,11 +240,10 @@ function copyAllBatch() {
     ).join('\n\n');
     
     navigator.clipboard.writeText(allText).then(() => {
-        showToast(`📋 ${batchData.length} textes copiés !`, true);
+        showToast(`${batchData.length} textes copiés !`, true);
     });
 }
 
-// === COPY TEXT ===
 function copyText() {
     const textOutput = document.getElementById('text-output');
     if (!textOutput) return;
@@ -278,7 +253,7 @@ function copyText() {
         if (copyBtn) {
             copyBtn.classList.add('copied');
             copyBtn.innerHTML = '<span>✅</span><span>Copié!</span>';
-            showToast('Texte copié dans le presse-papier !', true);
+            showToast('Texte copié !', true);
             setTimeout(() => {
                 copyBtn.classList.remove('copied');
                 copyBtn.innerHTML = '<span>📋</span><span>Copier</span>';
@@ -287,7 +262,6 @@ function copyText() {
     });
 }
 
-// === DOWNLOAD TEXT ===
 function downloadText() {
     const textOutput = document.getElementById('text-output');
     if (!textOutput) return;
@@ -296,7 +270,7 @@ function downloadText() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ediscan-texte-extrait.txt';
+    a.download = 'ediscan-texte.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -304,12 +278,10 @@ function downloadText() {
     showToast('Fichier téléchargé !', true);
 }
 
-// === CLEAR ALL ===
 function clearAll() {
     window.location.href = '/';
 }
 
-// === TOAST NOTIFICATION ===
 function showToast(message, success = true) {
     const toast = document.getElementById('toast');
     if (!toast) return;
@@ -321,7 +293,6 @@ function showToast(message, success = true) {
     setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 
-// === QUICK COPY ===
 function quickCopy() {
     const textOutput = document.getElementById('text-output');
     if (!textOutput) return;
@@ -333,7 +304,7 @@ function quickCopy() {
             quickCopyBtn.classList.remove('pulse');
             quickCopyBtn.classList.add('copied');
             quickCopyBtn.innerHTML = '<span class="icon">✅</span><span>Copié !</span>';
-            showToast('📋 Texte copié dans le presse-papier !', true);
+            showToast('Texte copié !', true);
             setTimeout(() => {
                 quickCopyBtn.classList.remove('copied');
                 quickCopyBtn.innerHTML = '<span class="icon">📋</span><span>Copie Rapide</span><span class="shortcut">Ctrl+Shift+C</span>';
@@ -342,18 +313,14 @@ function quickCopy() {
     });
 }
 
-// === KEYBOARD SHORTCUTS ===
 document.addEventListener('keydown', (e) => {
-    // Ctrl+Shift+C = Quick Copy
     if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
         const textOutput = document.getElementById('text-output');
         if (textOutput) quickCopy();
     }
     
-    // Ctrl+V = Paste image from clipboard
     if (e.ctrlKey && e.key === 'v') {
-        // Only intercept if not in an input/textarea
         if (document.activeElement.tagName !== 'INPUT' && 
             document.activeElement.tagName !== 'TEXTAREA') {
             handlePasteShortcut();
@@ -361,42 +328,36 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// === PASTE FROM CLIPBOARD (Ctrl+V) ===
 async function handlePasteShortcut() {
     try {
         const clipboardItems = await navigator.clipboard.read();
         
         for (const item of clipboardItems) {
-            // Check for image types
             const imageType = item.types.find(type => type.startsWith('image/'));
             
             if (imageType) {
                 const blob = await item.getType(imageType);
                 const file = new File([blob], `clipboard_${Date.now()}.png`, { type: imageType });
                 
-                // Create a DataTransfer to set files on input
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(file);
                 
                 if (fileInput) {
                     fileInput.files = dataTransfer.files;
                     handleFilesSelect([file]);
-                    showToast('📋 Image collée depuis le presse-papier !', true);
+                    showToast('Image collée !', true);
                 }
                 return;
             }
         }
         
-        // No image found
         showToast('Aucune image dans le presse-papier', false);
     } catch (err) {
         console.error('Paste error:', err);
-        // Fallback: try with paste event
         showToast('Utilisez Ctrl+V sur la zone de dépôt', false);
     }
 }
 
-// === PASTE EVENT LISTENER ===
 document.addEventListener('paste', async (e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -415,7 +376,7 @@ document.addEventListener('paste', async (e) => {
                 if (fileInput) {
                     fileInput.files = dataTransfer.files;
                     handleFilesSelect([renamedFile]);
-                    showToast('📋 Image collée !', true);
+                    showToast('Image collée !', true);
                 }
             }
             return;
@@ -423,12 +384,10 @@ document.addEventListener('paste', async (e) => {
     }
 });
 
-// === HISTORY ===
 function loadFromHistory(entryId) {
     window.location.href = `/history/${entryId}`;
 }
 
-// === AUTO COPY PREFERENCE ===
 if (autoCopyToggle) {
     if (localStorage.getItem('autoCopy') === 'true') {
         autoCopyToggle.checked = true;
@@ -438,7 +397,6 @@ if (autoCopyToggle) {
     });
 }
 
-// === INIT ON DOM READY ===
 document.addEventListener('DOMContentLoaded', () => {
     const textOutput = document.getElementById('text-output');
     const autoCopyEnabled = localStorage.getItem('autoCopy') === 'true';
@@ -446,11 +404,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (textOutput && autoCopyEnabled && textOutput.textContent.trim()) {
         setTimeout(() => {
             quickCopy();
-            showToast('⚡ Copie automatique effectuée !', true);
+            showToast('Copie automatique !', true);
         }, 500);
     }
     
-    // Initialize first batch result if exists
     if (typeof batchData !== 'undefined' && batchData.length > 0) {
         document.querySelector('.batch-item')?.classList.add('active');
     }

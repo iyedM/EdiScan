@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EdiScan - OCR Intelligent</title>
-    
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <!-- Styles -->
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -37,7 +33,6 @@
 
         <form method="POST" enctype="multipart/form-data" id="upload-form">
             <div class="main-grid">
-                <!-- Upload Section -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-header-left">
@@ -61,10 +56,8 @@
                         </div>
                     </div>
 
-                    <!-- Multi-file input -->
                     <input type="file" name="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp" multiple>
 
-                    <!-- File list preview -->
                     <div class="file-list" id="file-list" style="display: none;">
                         <div class="file-list-header">
                             <span>📁 Fichiers sélectionnés</span>
@@ -73,9 +66,8 @@
                         <ul class="file-list-items" id="file-list-items"></ul>
                     </div>
 
-                    <!-- Settings -->
                     <div class="settings-section">
-                        <div class="settings-title">⚙️ Paramètres</div>
+                        <div class="settings-title">Paramètres</div>
                         
                         <div class="setting-row">
                             <span class="setting-label">
@@ -112,7 +104,6 @@
                         </div>
                     </div>
 
-                    <!-- Hidden input for quick mode -->
                     <input type="hidden" name="quick_mode" id="quick-mode-input" value="off">
 
                     <div class="btn-group">
@@ -125,10 +116,9 @@
                             <span>Rapide</span>
                         </button>
                     </div>
-                    <p class="btn-hint">⚡ Rapide = idéal pour captures terminal/bash</p>
+                    <p class="btn-hint">Mode rapide = idéal pour captures terminal</p>
                 </div>
 
-                <!-- Center - Image Display or Batch Results -->
                 <div class="card image-display-card">
                     <div class="card-header">
                         <div class="card-header-left">
@@ -138,7 +128,6 @@
                     </div>
 
                     {% if batch_results %}
-                    <!-- Batch Results -->
                     <div class="batch-results">
                         {% for result in batch_results %}
                         <div class="batch-item" onclick="showBatchResult({{ loop.index0 }})">
@@ -150,9 +139,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <script>
-                        const batchData = {{ batch_results|tojson|safe }};
-                    </script>
+                    <script>const batchData = {{ batch_results|tojson|safe }};</script>
                     {% else %}
                     
                     {% if processed_image %}
@@ -186,7 +173,6 @@
                     {% endif %}
                 </div>
 
-                <!-- Result Section -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-header-left">
@@ -253,7 +239,6 @@
                     </div>
                     {% else %}
                     
-                    <!-- History Preview -->
                     {% if history %}
                     <div class="history-preview">
                         <div class="history-preview-title">
@@ -282,27 +267,28 @@
                 </div>
             </div>
         </form>
+
+        <footer class="site-footer">
+            <p>© 2025 <strong>Iyed Mohamed</strong> - EdiScan OCR</p>
+        </footer>
     </div>
 
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loading">
         <div class="spinner"></div>
         <p class="loading-text">Analyse en cours...</p>
         <div class="loading-steps">
-            <div class="loading-step" id="step-1">📤 Chargement de l'image</div>
+            <div class="loading-step" id="step-1">📤 Chargement</div>
             <div class="loading-step" id="step-2">✨ Prétraitement</div>
-            <div class="loading-step" id="step-3">🔍 Détection du texte</div>
+            <div class="loading-step" id="step-3">🔍 Détection</div>
             <div class="loading-step" id="step-4">📝 Extraction</div>
         </div>
     </div>
 
-    <!-- Toast -->
     <div class="toast" id="toast">
         <span class="toast-icon">✅</span>
         <span class="toast-message">Texte copié !</span>
     </div>
 
-    <!-- Quick Copy Floating Button -->
     {% if ocr_text or batch_results %}
     <button type="button" class="quick-copy-btn visible pulse" id="quick-copy-btn" onclick="quickCopy()">
         <span class="icon">📋</span>
@@ -311,8 +297,6 @@
     </button>
     {% endif %}
 
-    <!-- Scripts -->
     <script src="/static/js/app.js"></script>
 </body>
 </html>
-
