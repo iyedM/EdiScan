@@ -1,0 +1,22 @@
+# EdiScan - Dépendances Python (Docker CPU-only)
+# Version légère sans CUDA (~500MB vs ~3GB)
+
+# Framework web
+flask>=2.3.0
+
+# OCR (reconnaissance de texte)
+easyocr>=1.6.0
+
+# Traitement d'images
+opencv-python-headless>=4.5.0
+numpy>=1.24.0
+pillow>=9.5.0
+
+# Deep Learning CPU-only (beaucoup plus léger)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+
+# Utilitaires
+werkzeug>=2.3.0
+

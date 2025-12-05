@@ -4,7 +4,7 @@
 # ==========================================
 
 # Stage 1: Builder
-FROM python:3.10-slim-bookworm as builder
+FROM python:3.10-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -17,14 +17,14 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for caching
-COPY server/requirements.txt .
+COPY server/requirements-docker.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Install Python dependencies (CPU-only PyTorch = much smaller)
+RUN pip install --no-cache-dir --user -r requirements-docker.txt
 
 # ==========================================
 # Stage 2: Runtime
-FROM python:3.10-slim-bookworm as runtime
+FROM python:3.10-slim-bookworm AS runtime
 
 LABEL maintainer="EdiScan"
 LABEL description="OCR Intelligent - Extraction de texte par IA"
@@ -42,8 +42,7 @@ RUN apt-get update && \
         libxrender1 \
         curl \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && apt-get autoremove -y
+    && apt-get clean
 
 # Copy Python packages from builder
 COPY --from=builder /root/.local /root/.local
