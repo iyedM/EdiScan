@@ -1,10 +1,10 @@
 # EdiScan - Dépendances Python
-# Installation: pip install -r requirements.txt
 
 # Framework web
 flask>=2.3.0
+werkzeug>=2.3.0
 
-# OCR (reconnaissance de texte)
+# OCR
 easyocr>=1.6.0
 
 # Traitement d'images
@@ -12,8 +12,36 @@ opencv-python-headless>=4.5.0
 numpy>=1.24.0
 pillow>=9.5.0
 
-# Deep Learning (requis par EasyOCR)
+# Deep Learning
 torch>=2.0.0
 
-# Utilitaires
-werkzeug>=2.3.0
+# PDF
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0
+
+# Word/DOCX
+python-docx>=0.8.11
+
+# Traduction
+deep-translator>=1.11.4
+
+# QR Code
+pyzbar>=0.1.9
+qrcode>=7.4.2
+
+# Audio (Speech-to-Text)
+openai-whisper>=20231117
+pydub>=0.25.1
+
+# Text-to-Speech
+gTTS>=2.5.0
+
+# Résumé automatique
+sumy>=0.11.0
+nltk>=3.8.1
+
+# Extraction d'infos
+phonenumbers>=8.13.0
+
+# Correction orthographe
+language-tool-python>=2.7.1

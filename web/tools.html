@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdiScan - Outils</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .tool-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+        .tool-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .tool-card.disabled:hover {
+            transform: none;
+            border-color: var(--border);
+            box-shadow: none;
+        }
+        .tool-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .tool-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .tool-desc {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .tool-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+        .badge-available {
+            background: var(--success);
+            color: white;
+        }
+        .badge-coming {
+            background: var(--warning);
+            color: black;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            margin: 40px 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <a href="/" class="back-link">← Retour à l'OCR</a>
+        
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🛠️</div>
+                <h1>EdiScan Tools</h1>
+            </div>
+            <p class="subtitle">Suite d'outils intelligents pour vos documents</p>
+        </header>
+
+        <h2 class="section-title">📄 Documents</h2>
+        <div class="tools-grid">
+            <a href="/tool/pdf" class="tool-card">
+                <div class="tool-icon">📄</div>
+                <div class="tool-title">PDF → Texte</div>
+                <div class="tool-desc">Extraire le texte d'un fichier PDF</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/tool/docx" class="tool-card">
+                <div class="tool-icon">📝</div>
+                <div class="tool-title">Word → Texte</div>
+                <div class="tool-desc">Extraire le texte d'un document Word</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/" class="tool-card">
+                <div class="tool-icon">📷</div>
+                <div class="tool-title">Image → Texte (OCR)</div>
+                <div class="tool-desc">Extraire le texte d'une image</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+        </div>
+
+        <h2 class="section-title">🌍 Langues</h2>
+        <div class="tools-grid">
+            <a href="/tool/translate" class="tool-card">
+                <div class="tool-icon">🌐</div>
+                <div class="tool-title">Traduction</div>
+                <div class="tool-desc">Traduire du texte vers 12+ langues</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/tool/detect-language" class="tool-card">
+                <div class="tool-icon">🔍</div>
+                <div class="tool-title">Détection de langue</div>
+                <div class="tool-desc">Identifier la langue d'un texte</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+        </div>
+
+        <h2 class="section-title">🎙️ Audio</h2>
+        <div class="tools-grid">
+            <a href="/tool/speech-to-text" class="tool-card">
+                <div class="tool-icon">🎤</div>
+                <div class="tool-title">Audio → Texte</div>
+                <div class="tool-desc">Transcrire un fichier audio avec Whisper AI</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/tool/text-to-speech" class="tool-card">
+                <div class="tool-icon">🔊</div>
+                <div class="tool-title">Texte → Audio</div>
+                <div class="tool-desc">Convertir du texte en parole</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+        </div>
+
+        <h2 class="section-title">🤖 Intelligence</h2>
+        <div class="tools-grid">
+            <a href="/tool/summarize" class="tool-card">
+                <div class="tool-icon">📋</div>
+                <div class="tool-title">Résumé automatique</div>
+                <div class="tool-desc">Résumer un long texte en quelques phrases</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/tool/extract-info" class="tool-card">
+                <div class="tool-icon">🔎</div>
+                <div class="tool-title">Extraction d'infos</div>
+                <div class="tool-desc">Extraire emails, téléphones, URLs, dates</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+        </div>
+
+        <h2 class="section-title">📱 Utilitaires</h2>
+        <div class="tools-grid">
+            <a href="/tool/qr-scan" class="tool-card">
+                <div class="tool-icon">📱</div>
+                <div class="tool-title">Scanner QR Code</div>
+                <div class="tool-desc">Lire un QR code depuis une image</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/tool/qr-generate" class="tool-card">
+                <div class="tool-icon">⬛</div>
+                <div class="tool-title">Générer QR Code</div>
+                <div class="tool-desc">Créer un QR code depuis du texte</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+            <a href="/tool/stats" class="tool-card">
+                <div class="tool-icon">📊</div>
+                <div class="tool-title">Statistiques texte</div>
+                <div class="tool-desc">Mots, phrases, caractères, etc.</div>
+                <span class="tool-badge badge-available">Disponible</span>
+            </a>
+        </div>
+
+        <footer class="site-footer">
+            <p>© 2025 <strong>Iyed Mohamed</strong> - EdiScan Tools</p>
+        </footer>
+    </div>
+</body>
+</html>
+

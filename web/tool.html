@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tool_name }} - EdiScan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">{{ tool_icon }}</div>
+                <h1>{{ tool_name }}</h1>
+            </div>
+            <p class="subtitle">{{ tool_description }}</p>
+            <div class="header-badges">
+                <a href="/" class="status-badge">
+                    <span>📷</span>
+                    <span>OCR</span>
+                </a>
+                <a href="/tools" class="status-badge">
+                    <span>🛠️</span>
+                    <span>Tous les outils</span>
+                </a>
+            </div>
+        </header>
+
+        <form method="POST" enctype="multipart/form-data" id="tool-form">
+            <div class="main-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon">📤</div>
+                            <h2 class="card-title">Entrée</h2>
+                        </div>
+                    </div>
+
+                    {% if input_type == 'file' %}
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-content">
+                            <div class="drop-icon">{{ tool_icon }}</div>
+                            <p class="drop-text">{{ drop_text }}</p>
+                            <p class="drop-hint">ou cliquez pour parcourir</p>
+                            <div class="file-types">
+                                {% for ext in allowed_extensions %}
+                                <span class="file-type">{{ ext }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" name="file" id="file-input" accept="{{ accept_types }}" style="display:none;">
+                    {% elif input_type == 'text' %}
+                    <textarea name="text" id="input-text" class="text-output" placeholder="{{ placeholder }}" style="min-height: 250px;">{{ input_text or '' }}</textarea>
+                    {% endif %}
+
+                    {% if tool_id == 'translate' %}
+                    <div class="settings-section">
+                        <div class="setting-row">
+                            <span class="setting-label">Langue source</span>
+                            <select name="source_lang" style="padding: 8px; border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border);">
+                                <option value="auto">Auto-détection</option>
+                                <option value="fr">Français</option>
+                                <option value="en">English</option>
+                                <option value="ar">العربية</option>
+                                <option value="es">Español</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Langue cible</span>
+                            <select name="target_lang" style="padding: 8px; border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border);">
+                                <option value="en">English</option>
+                                <option value="fr">Français</option>
+                                <option value="ar">العربية</option>
+                                <option value="es">Español</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if tool_id == 'summarize' %}
+                    <div class="settings-section">
+                        <div class="setting-row">
+                            <span class="setting-label">Nombre de phrases</span>
+                            <select name="sentences" style="padding: 8px; border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border);">
+                                <option value="3">3 phrases</option>
+                                <option value="5" selected>5 phrases</option>
+                                <option value="10">10 phrases</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if tool_id == 'qr-generate' %}
+                    <div class="settings-section">
+                        <input type="text" name="qr_data" placeholder="Texte ou URL pour le QR code" style="width: 100%; padding: 12px; border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border);">
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary" id="submit-btn">
+                        <span>{{ tool_icon }}</span>
+                        <span>{{ button_text }}</span>
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon">📝</div>
+                            <h2 class="card-title">Résultat</h2>
+                        </div>
+                    </div>
+
+                    {% if result %}
+                        {% if result_type == 'text' %}
+                        <div class="text-output" id="text-output">{{ result }}</div>
+                        <div class="actions-bar">
+                            <button type="button" class="action-btn" onclick="copyText()">
+                                <span>📋</span>
+                                <span>Copier</span>
+                            </button>
+                            <button type="button" class="action-btn" onclick="downloadText()">
+                                <span>💾</span>
+                                <span>Télécharger</span>
+                            </button>
+                        </div>
+                        {% elif result_type == 'image' %}
+                        <div style="text-align: center;">
+                            <img src="data:image/png;base64,{{ result }}" alt="QR Code" style="max-width: 100%; border-radius: 12px;">
+                        </div>
+                        <div class="actions-bar">
+                            <a href="data:image/png;base64,{{ result }}" download="qrcode.png" class="action-btn">
+                                <span>💾</span>
+                                <span>Télécharger</span>
+                            </a>
+                        </div>
+                        {% elif result_type == 'audio' %}
+                        <audio controls style="width: 100%;">
+                            <source src="data:audio/mp3;base64,{{ result }}" type="audio/mp3">
+                        </audio>
+                        <div class="actions-bar">
+                            <a href="data:audio/mp3;base64,{{ result }}" download="speech.mp3" class="action-btn">
+                                <span>💾</span>
+                                <span>Télécharger MP3</span>
+                            </a>
+                        </div>
+                        {% elif result_type == 'info' %}
+                        <div class="text-output">
+                            {% if result.emails %}
+                            <strong>📧 Emails:</strong><br>
+                            {% for email in result.emails %}• {{ email }}<br>{% endfor %}<br>
+                            {% endif %}
+                            {% if result.phones %}
+                            <strong>📱 Téléphones:</strong><br>
+                            {% for phone in result.phones %}• {{ phone }}<br>{% endfor %}<br>
+                            {% endif %}
+                            {% if result.urls %}
+                            <strong>🔗 URLs:</strong><br>
+                            {% for url in result.urls %}• {{ url }}<br>{% endfor %}<br>
+                            {% endif %}
+                            {% if result.dates %}
+                            <strong>📅 Dates:</strong><br>
+                            {% for date in result.dates %}• {{ date }}<br>{% endfor %}
+                            {% endif %}
+                        </div>
+                        {% elif result_type == 'stats' %}
+                        <div class="stats-grid">
+                            <div class="stat">
+                                <div class="stat-value">{{ result.words }}</div>
+                                <div class="stat-label">Mots</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">{{ result.sentences }}</div>
+                                <div class="stat-label">Phrases</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">{{ result.characters }}</div>
+                                <div class="stat-label">Caractères</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">{{ result.paragraphs }}</div>
+                                <div class="stat-label">Paragraphes</div>
+                            </div>
+                        </div>
+                        {% elif result_type == 'qr' %}
+                        <div class="text-output">
+                            {% for qr in result %}
+                            <strong>{{ qr.type }}:</strong> {{ qr.data }}<br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% elif error %}
+                    <div class="empty-state" style="color: var(--danger);">
+                        <div class="empty-icon">❌</div>
+                        <p>{{ error }}</p>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">{{ tool_icon }}</div>
+                        <p>{{ empty_message }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+
+        <footer class="site-footer">
+            <p>© 2025 <strong>Iyed Mohamed</strong> - EdiScan</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">Copié !</span>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        
+        if (dropZone && fileInput) {
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    document.getElementById('tool-form').submit();
+                }
+            });
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    document.getElementById('tool-form').submit();
+                }
+            });
+        }
+
+        function copyText() {
+            const text = document.getElementById('text-output').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('visible');
+                setTimeout(() => toast.classList.remove('visible'), 2000);
+            });
+        }
+
+        function downloadText() {
+            const text = document.getElementById('text-output').textContent;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'ediscan-result.txt';
+            a.click();
+        }
+    </script>
+</body>
+</html>
+

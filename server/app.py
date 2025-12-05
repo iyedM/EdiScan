@@ -33,6 +33,15 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB
 
+# Importer et enregistrer le Blueprint des outils
+try:
+    from routes import tools_bp
+    app.register_blueprint(tools_bp)
+    TOOLS_AVAILABLE = True
+except ImportError:
+    TOOLS_AVAILABLE = False
+    print("⚠️ Module features non disponible, outils désactivés")
+
 # Vérifier si GPU disponible (CUDA)
 import torch
 GPU_AVAILABLE = torch.cuda.is_available()
@@ -774,29 +783,35 @@ def api_batch_ocr():
 
 
 # ==========================================
+# INITIALISATION AU DÉMARRAGE
+# ==========================================
+
+# Initialiser la base de données
+init_database()
+
+# Créer les dossiers
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+
+# Démarrer le nettoyage automatique
+start_cleanup_scheduler()
+
+# Premier nettoyage au démarrage
+cleanup_old_files()
+
+
+# ==========================================
 # MAIN
 # ==========================================
 
 if __name__ == "__main__":
-    # Initialiser la base de données
-    init_database()
-    
-    # Créer les dossiers
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    os.makedirs(PROCESSED_FOLDER, exist_ok=True)
-    
-    # Démarrer le nettoyage automatique
-    start_cleanup_scheduler()
-    
-    # Premier nettoyage au démarrage
-    cleanup_old_files()
-    
     print("=" * 50)
     print("🔍 EdiScan - OCR Intelligent")
     print(f"🖥️  GPU CUDA: {'✅ Activé' if GPU_AVAILABLE else '❌ Désactivé (CPU)'}")
     print(f"🌐 Langues: Français, Anglais")
     print(f"📦 Base de données: {DATABASE_FILE}")
     print(f"🧹 Nettoyage auto: fichiers > {MAX_FILE_AGE_HOURS}h")
+    print(f"🛠️  Outils: {'✅ Activés' if TOOLS_AVAILABLE else '❌ Désactivés'}")
     print(f"🐳 Mode: {'Production' if not DEBUG else 'Développement'}")
     print(f"🌐 Serveur: http://{HOST}:{PORT}")
     print("=" * 50)

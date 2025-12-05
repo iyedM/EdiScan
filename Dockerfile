@@ -40,6 +40,7 @@ RUN apt-get update && \
         libsm6 \
         libxext6 \
         libxrender1 \
+        libzbar0 \
         curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
