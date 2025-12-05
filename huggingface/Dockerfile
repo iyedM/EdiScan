@@ -35,10 +35,11 @@ RUN mkdir -p uploads processed models
 ENV FLASK_APP=server/app.py
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
+ENV PORT=7860
+ENV HOST=0.0.0.0
 
 # Hugging Face uses port 7860
 EXPOSE 7860
 
-# Run on HF port
-CMD ["python", "-c", "import sys; sys.path.insert(0, '.'); from server.app import app; app.run(host='0.0.0.0', port=7860)"]
-
+# Run the app directly (so __main__ block executes)
+CMD ["python", "server/app.py"]
