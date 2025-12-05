@@ -23,9 +23,15 @@
                 <h1>EdiScan</h1>
             </div>
             <p class="subtitle">Extraction de texte intelligente par OCR</p>
-            <div class="status-badge {{ 'gpu' if gpu_available else 'cpu' }}">
-                <span class="status-dot"></span>
-                <span>{{ '⚡ GPU CUDA Activé' if gpu_available else '💻 Mode CPU' }}</span>
+            <div class="header-badges">
+                <div class="status-badge {{ 'gpu' if gpu_available else 'cpu' }}">
+                    <span class="status-dot"></span>
+                    <span>{{ '⚡ GPU CUDA' if gpu_available else '💻 CPU' }}</span>
+                </div>
+                <a href="/history" class="status-badge history-link">
+                    <span>📚</span>
+                    <span>Historique</span>
+                </a>
             </div>
         </header>
 
@@ -38,13 +44,14 @@
                             <div class="card-icon">📤</div>
                             <h2 class="card-title">Importer</h2>
                         </div>
+                        <span class="file-count-badge" id="file-count" style="display: none;">0</span>
                     </div>
 
                     <div class="drop-zone" id="drop-zone">
                         <div class="drop-zone-content">
                             <div class="drop-icon">🖼️</div>
-                            <p class="drop-text">Glissez votre image ici</p>
-                            <p class="drop-hint">ou cliquez pour parcourir</p>
+                            <p class="drop-text">Glissez vos images ici</p>
+                            <p class="drop-hint">ou cliquez pour parcourir (multi-sélection)</p>
                             <div class="file-types">
                                 <span class="file-type">PNG</span>
                                 <span class="file-type">JPG</span>
@@ -54,7 +61,17 @@
                         </div>
                     </div>
 
-                    <input type="file" name="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp">
+                    <!-- Multi-file input -->
+                    <input type="file" name="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp" multiple>
+
+                    <!-- File list preview -->
+                    <div class="file-list" id="file-list" style="display: none;">
+                        <div class="file-list-header">
+                            <span>📁 Fichiers sélectionnés</span>
+                            <button type="button" class="clear-files-btn" onclick="clearFiles()">✕ Effacer</button>
+                        </div>
+                        <ul class="file-list-items" id="file-list-items"></ul>
+                    </div>
 
                     <!-- Settings -->
                     <div class="settings-section">
@@ -111,15 +128,33 @@
                     <p class="btn-hint">⚡ Rapide = idéal pour captures terminal/bash</p>
                 </div>
 
-                <!-- Center - Image Display -->
+                <!-- Center - Image Display or Batch Results -->
                 <div class="card image-display-card">
                     <div class="card-header">
                         <div class="card-header-left">
                             <div class="card-icon">🖼️</div>
-                            <h2 class="card-title">Aperçu</h2>
+                            <h2 class="card-title">{% if batch_results %}Résultats ({{ batch_results|length }}){% else %}Aperçu{% endif %}</h2>
                         </div>
                     </div>
 
+                    {% if batch_results %}
+                    <!-- Batch Results -->
+                    <div class="batch-results">
+                        {% for result in batch_results %}
+                        <div class="batch-item" onclick="showBatchResult({{ loop.index0 }})">
+                            <img src="{{ result.uploaded_image }}" alt="{{ result.original_filename }}">
+                            <div class="batch-item-info">
+                                <span class="batch-item-name">{{ result.original_filename }}</span>
+                                <span class="batch-item-stats">{{ result.stats.word_count }} mots • {{ result.stats.avg_confidence }}%</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <script>
+                        const batchData = {{ batch_results|tojson|safe }};
+                    </script>
+                    {% else %}
+                    
                     {% if processed_image %}
                     <div class="image-tabs">
                         <button type="button" class="image-tab active" onclick="showImage('original')">Original</button>
@@ -148,6 +183,7 @@
                         <span>{{ uploaded_filename }}</span>
                     </div>
                     {% endif %}
+                    {% endif %}
                 </div>
 
                 <!-- Result Section -->
@@ -165,8 +201,8 @@
                         {% endif %}
                     </div>
 
-                    {% if ocr_text %}
-                    <div class="text-output" id="text-output">{{ ocr_text }}</div>
+                    {% if ocr_text or batch_results %}
+                    <div class="text-output" id="text-output">{% if ocr_text %}{{ ocr_text }}{% elif batch_results %}{{ batch_results[0].text }}{% endif %}</div>
                     
                     <div class="actions-bar">
                         <button type="button" class="action-btn" id="copy-btn" onclick="copyText()">
@@ -177,6 +213,12 @@
                             <span>💾</span>
                             <span>Télécharger</span>
                         </button>
+                        {% if batch_results %}
+                        <button type="button" class="action-btn" onclick="copyAllBatch()">
+                            <span>📑</span>
+                            <span>Tout copier</span>
+                        </button>
+                        {% endif %}
                         <button type="button" class="action-btn" onclick="clearAll()">
                             <span>🗑️</span>
                             <span>Effacer</span>
@@ -185,20 +227,41 @@
 
                     <div class="stats-grid">
                         <div class="stat">
-                            <div class="stat-value">{{ stats.word_count }}</div>
+                            <div class="stat-value" id="stat-words">{% if stats %}{{ stats.word_count }}{% elif batch_results %}{{ batch_results[0].stats.word_count }}{% else %}0{% endif %}</div>
                             <div class="stat-label">Mots</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">{{ stats.line_count }}</div>
+                            <div class="stat-value" id="stat-lines">{% if stats %}{{ stats.line_count }}{% elif batch_results %}{{ batch_results[0].stats.line_count }}{% else %}0{% endif %}</div>
                             <div class="stat-label">Lignes</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">{{ stats.char_count }}</div>
+                            <div class="stat-value" id="stat-chars">{% if stats %}{{ stats.char_count }}{% elif batch_results %}{{ batch_results[0].stats.char_count }}{% else %}0{% endif %}</div>
                             <div class="stat-label">Caractères</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value success">{{ stats.detection_count }}</div>
+                            <div class="stat-value success" id="stat-detections">{% if stats %}{{ stats.detection_count }}{% elif batch_results %}{{ batch_results[0].stats.detection_count }}{% else %}0{% endif %}</div>
                             <div class="stat-label">Détections</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    
+                    <!-- History Preview -->
+                    {% if history %}
+                    <div class="history-preview">
+                        <div class="history-preview-title">
+                            <span>📚 Historique récent</span>
+                            <a href="/history" class="history-link-small">Voir tout →</a>
+                        </div>
+                        <div class="history-list">
+                            {% for item in history[:5] %}
+                            <div class="history-item" onclick="loadFromHistory('{{ item.id }}')">
+                                <div class="history-item-text">{{ item.extracted_text[:50] }}{% if item.extracted_text|length > 50 %}...{% endif %}</div>
+                                <div class="history-item-meta">
+                                    <span>{{ item.word_count }} mots</span>
+                                    <span>{{ item.confidence }}%</span>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                     {% else %}
@@ -206,6 +269,7 @@
                         <div class="empty-icon">🔎</div>
                         <p>Importez une image pour extraire le texte</p>
                     </div>
+                    {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -231,7 +295,7 @@
     </div>
 
     <!-- Quick Copy Floating Button -->
-    {% if ocr_text %}
+    {% if ocr_text or batch_results %}
     <button type="button" class="quick-copy-btn visible pulse" id="quick-copy-btn" onclick="quickCopy()">
         <span class="icon">📋</span>
         <span>Copie Rapide</span>
@@ -243,3 +307,4 @@
     <script src="/static/js/app.js"></script>
 </body>
 </html>
+

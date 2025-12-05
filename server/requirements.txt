@@ -1,6 +1,19 @@
-flask
-easyocr
-opencv-python-headless
-numpy
-pillow
-torch
+# EdiScan - Dépendances Python
+# Installation: pip install -r requirements.txt
+
+# Framework web
+flask>=2.3.0
+
+# OCR (reconnaissance de texte)
+easyocr>=1.6.0
+
+# Traitement d'images
+opencv-python-headless>=4.5.0
+numpy>=1.24.0
+pillow>=9.5.0
+
+# Deep Learning (requis par EasyOCR)
+torch>=2.0.0
+
+# Utilitaires
+werkzeug>=2.3.0
