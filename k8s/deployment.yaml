@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ediscan
+  namespace: ediscan
+  labels:
+    app: ediscan
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ediscan
+  template:
+    metadata:
+      labels:
+        app: ediscan
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: ediscan
+          image: iyedmed/ediscan:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: ediscan-config
+            - secretRef:
+                name: ediscan-secret
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: data
+              mountPath: /app/uploads
+              subPath: uploads
+            - name: data
+              mountPath: /app/processed
+              subPath: processed
+            - name: models
+              mountPath: /app/models
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ediscan-data
+        - name: models
+          persistentVolumeClaim:
+            claimName: ediscan-models
+

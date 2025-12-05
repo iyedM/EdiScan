@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ediscan.fullname" . }}
+  labels:
+    {{- include "ediscan.labels" . | nindent 4 }}
+data:
+  FLASK_ENV: {{ .Values.config.flaskEnv | quote }}
+  PYTHONUNBUFFERED: "1"
+  CLEANUP_INTERVAL: {{ .Values.config.cleanupInterval | quote }}
+  MAX_FILE_AGE: {{ .Values.config.maxFileAge | quote }}
+

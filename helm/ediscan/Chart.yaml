@@ -1,0 +1,15 @@
+apiVersion: v2
+name: ediscan
+description: EdiScan - OCR Intelligent Application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ocr
+  - flask
+  - easyocr
+  - machine-learning
+maintainers:
+  - name: Iyed Mohamed
+    email: iyed.mohamed0103@gmail.com
+

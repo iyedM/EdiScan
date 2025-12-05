@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ediscan-config
+  namespace: ediscan
+data:
+  FLASK_ENV: "production"
+  PYTHONUNBUFFERED: "1"
+  CLEANUP_INTERVAL: "3600"
+  MAX_FILE_AGE: "86400"
+

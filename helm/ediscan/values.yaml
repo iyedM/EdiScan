@@ -1,0 +1,73 @@
+replicaCount: 2
+
+image:
+  repository: iyedmed/ediscan
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: ediscan.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ediscan-tls
+      hosts:
+        - ediscan.example.com
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+persistence:
+  enabled: true
+  data:
+    size: 5Gi
+    storageClass: standard
+  models:
+    size: 2Gi
+    storageClass: standard
+
+config:
+  flaskEnv: production
+  cleanupInterval: "3600"
+  maxFileAge: "86400"
+
+secrets:
+  flaskSecretKey: "change-me-in-production"
+
+probes:
+  liveness:
+    initialDelaySeconds: 120
+    periodSeconds: 30
+  readiness:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+

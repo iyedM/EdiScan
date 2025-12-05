@@ -1,0 +1,11 @@
+project_id   = "your-gcp-project-id"
+region       = "europe-west1"
+zone         = "europe-west1-b"
+cluster_name = "ediscan-cluster"
+node_count   = 2
+machine_type = "e2-medium"
+disk_size_gb = 50
+domain       = "ediscan.yourdomain.com"
+docker_image = "iyedmed/ediscan:latest"
+environment  = "prod"
+

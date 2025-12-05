@@ -1,0 +1,34 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ediscan.fullname" . }}-data
+  labels:
+    {{- include "ediscan.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.data.size }}
+  {{- if .Values.persistence.data.storageClass }}
+  storageClassName: {{ .Values.persistence.data.storageClass }}
+  {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ediscan.fullname" . }}-models
+  labels:
+    {{- include "ediscan.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.models.size }}
+  {{- if .Values.persistence.models.storageClass }}
+  storageClassName: {{ .Values.persistence.models.storageClass }}
+  {{- end }}
+{{- end }}
+
