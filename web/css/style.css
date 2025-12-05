@@ -581,6 +581,12 @@ h1 {
 }
 
 /* === RESULTS === */
+.badge-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .confidence-badge {
     display: flex;
     align-items: center;
@@ -594,6 +600,25 @@ h1 {
 .confidence-badge.high { color: var(--success); }
 .confidence-badge.medium { color: var(--warning); }
 .confidence-badge.low { color: var(--danger); }
+
+.cache-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    animation: pulse-cache 2s ease-in-out;
+}
+
+@keyframes pulse-cache {
+    0% { transform: scale(1.2); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
 
 .text-output {
     background: var(--bg-secondary);

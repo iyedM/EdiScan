@@ -5,6 +5,7 @@ Application web d'extraction de texte à partir d'images utilisant l'intelligenc
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-2.3-green.svg)
 ![EasyOCR](https://img.shields.io/badge/EasyOCR-1.6-orange.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)
 
 ## ✨ Fonctionnalités
 
@@ -13,9 +14,12 @@ Application web d'extraction de texte à partir d'images utilisant l'intelligenc
 - 📁 **Multi-images** - Traitement par lot
 - 📚 **Historique** - Sauvegarde automatique des extractions
 - 📋 **Copie rapide** - Un clic ou `Ctrl+Shift+C`
+- 📋 **Ctrl+V** - Coller directement depuis le presse-papier
+- 💾 **Cache intelligent** - Évite de re-traiter les mêmes images
 - 🧹 **Nettoyage auto** - Suppression des fichiers > 24h
 - 🎯 **Détections visuelles** - Boîtes colorées selon confiance
 - 💾 **Export** - Téléchargement en .txt
+- 🐳 **Docker Ready** - Déploiement containerisé
 
 ## 📋 Prérequis
 
@@ -80,6 +84,72 @@ Ou sur Windows, double-cliquez sur `launch_ediscan.bat`
 
 Ouvrez votre navigateur : **http://127.0.0.1:5000**
 
+---
+
+## 🐳 Installation avec Docker
+
+### Option 1: Docker Compose (Recommandé)
+
+```bash
+# Cloner le projet
+git clone https://github.com/iyedM/EdiScan.git
+cd EdiScan
+
+# Lancer avec Docker Compose
+docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f
+```
+
+L'application sera disponible sur **http://localhost:5000**
+
+### Option 2: Docker seul
+
+```bash
+# Construire l'image
+docker build -t ediscan .
+
+# Lancer le conteneur
+docker run -d \
+  --name ediscan \
+  -p 5000:5000 \
+  -v ediscan-uploads:/app/uploads \
+  -v ediscan-models:/app/models \
+  ediscan
+```
+
+### Commandes utiles
+
+```bash
+# Arrêter
+docker-compose down
+
+# Reconstruire après modifications
+docker-compose up -d --build
+
+# Voir les logs en temps réel
+docker-compose logs -f ediscan
+
+# Accéder au conteneur
+docker exec -it ediscan-app bash
+
+# Supprimer tout (conteneurs + volumes)
+docker-compose down -v
+```
+
+### Variables d'environnement
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `PORT` | 5000 | Port du serveur |
+| `HOST` | 0.0.0.0 | Hôte |
+| `FLASK_ENV` | development | `production` pour prod |
+| `MAX_FILE_AGE_HOURS` | 24 | Durée avant nettoyage |
+| `DATABASE_FILE` | ediscan.db | Chemin BDD |
+
+---
+
 ## 📁 Structure du projet
 
 ```
@@ -98,6 +168,9 @@ EdiScan/
 ├── processed/              # Images traitées (auto-généré)
 ├── models/                 # Modèles EasyOCR (auto-téléchargé)
 ├── ediscan.db              # Base de données SQLite (auto-généré)
+├── Dockerfile              # 🐳 Image Docker
+├── docker-compose.yml      # 🐳 Orchestration
+├── .dockerignore           # 🐳 Fichiers ignorés
 ├── launch_ediscan.bat      # Script de lancement Windows
 ├── .gitignore
 └── README.md

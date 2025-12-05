@@ -344,10 +344,82 @@ function quickCopy() {
 
 // === KEYBOARD SHORTCUTS ===
 document.addEventListener('keydown', (e) => {
+    // Ctrl+Shift+C = Quick Copy
     if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
         const textOutput = document.getElementById('text-output');
         if (textOutput) quickCopy();
+    }
+    
+    // Ctrl+V = Paste image from clipboard
+    if (e.ctrlKey && e.key === 'v') {
+        // Only intercept if not in an input/textarea
+        if (document.activeElement.tagName !== 'INPUT' && 
+            document.activeElement.tagName !== 'TEXTAREA') {
+            handlePasteShortcut();
+        }
+    }
+});
+
+// === PASTE FROM CLIPBOARD (Ctrl+V) ===
+async function handlePasteShortcut() {
+    try {
+        const clipboardItems = await navigator.clipboard.read();
+        
+        for (const item of clipboardItems) {
+            // Check for image types
+            const imageType = item.types.find(type => type.startsWith('image/'));
+            
+            if (imageType) {
+                const blob = await item.getType(imageType);
+                const file = new File([blob], `clipboard_${Date.now()}.png`, { type: imageType });
+                
+                // Create a DataTransfer to set files on input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                
+                if (fileInput) {
+                    fileInput.files = dataTransfer.files;
+                    handleFilesSelect([file]);
+                    showToast('📋 Image collée depuis le presse-papier !', true);
+                }
+                return;
+            }
+        }
+        
+        // No image found
+        showToast('Aucune image dans le presse-papier', false);
+    } catch (err) {
+        console.error('Paste error:', err);
+        // Fallback: try with paste event
+        showToast('Utilisez Ctrl+V sur la zone de dépôt', false);
+    }
+}
+
+// === PASTE EVENT LISTENER ===
+document.addEventListener('paste', async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    for (let item of items) {
+        if (item.type.startsWith('image/')) {
+            e.preventDefault();
+            
+            const file = item.getAsFile();
+            if (file) {
+                const renamedFile = new File([file], `clipboard_${Date.now()}.png`, { type: file.type });
+                
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(renamedFile);
+                
+                if (fileInput) {
+                    fileInput.files = dataTransfer.files;
+                    handleFilesSelect([renamedFile]);
+                    showToast('📋 Image collée !', true);
+                }
+            }
+            return;
+        }
     }
 });
 

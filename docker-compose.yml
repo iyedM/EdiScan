@@ -1,0 +1,64 @@
+# ==========================================
+# EdiScan - Docker Compose
+# ==========================================
+
+version: '3.8'
+
+services:
+  ediscan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ediscan-app
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist data
+      - ediscan-uploads:/app/uploads
+      - ediscan-processed:/app/processed
+      - ediscan-models:/app/models
+      - ediscan-db:/app/data
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  # Optional: Add Redis for caching (future improvement)
+  # redis:
+  #   image: redis:alpine
+  #   container_name: ediscan-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+
+volumes:
+  ediscan-uploads:
+    driver: local
+  ediscan-processed:
+    driver: local
+  ediscan-models:
+    driver: local
+  ediscan-db:
+    driver: local
+  # redis-data:
+  #   driver: local
+
+# Networks (optional for multi-service setup)
+networks:
+  default:
+    name: ediscan-network
+

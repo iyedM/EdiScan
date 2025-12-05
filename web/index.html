@@ -51,7 +51,7 @@
                         <div class="drop-zone-content">
                             <div class="drop-icon">🖼️</div>
                             <p class="drop-text">Glissez vos images ici</p>
-                            <p class="drop-hint">ou cliquez pour parcourir (multi-sélection)</p>
+                            <p class="drop-hint">ou cliquez pour parcourir • <strong>Ctrl+V</strong> pour coller</p>
                             <div class="file-types">
                                 <span class="file-type">PNG</span>
                                 <span class="file-type">JPG</span>
@@ -194,9 +194,17 @@
                             <h2 class="card-title">Texte extrait</h2>
                         </div>
                         {% if stats %}
-                        <div class="confidence-badge {{ 'high' if stats.avg_confidence >= 80 else ('medium' if stats.avg_confidence >= 50 else 'low') }}">
-                            <span>🎯</span>
-                            <span>{{ stats.avg_confidence }}%</span>
+                        <div class="badge-group">
+                            {% if from_cache %}
+                            <div class="cache-badge">
+                                <span>⚡</span>
+                                <span>Cache</span>
+                            </div>
+                            {% endif %}
+                            <div class="confidence-badge {{ 'high' if stats.avg_confidence >= 80 else ('medium' if stats.avg_confidence >= 50 else 'low') }}">
+                                <span>🎯</span>
+                                <span>{{ stats.avg_confidence }}%</span>
+                            </div>
                         </div>
                         {% endif %}
                     </div>

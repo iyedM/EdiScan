@@ -7,18 +7,22 @@ import json
 import sqlite3
 import threading
 import time
+import hashlib
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from PIL import Image, ImageEnhance, ImageFilter
 import uuid
 
 # === CONFIGURATION ===
-UPLOAD_FOLDER = 'uploads'
-PROCESSED_FOLDER = 'processed'
-DATABASE_FILE = 'ediscan.db'
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
+PROCESSED_FOLDER = os.environ.get('PROCESSED_FOLDER', 'processed')
+DATABASE_FILE = os.environ.get('DATABASE_FILE', 'ediscan.db')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp', 'tiff', 'webp'}
-MAX_FILE_AGE_HOURS = 24  # Supprimer les fichiers après 24h
-CLEANUP_INTERVAL_SECONDS = 3600  # Vérifier toutes les heures
+MAX_FILE_AGE_HOURS = int(os.environ.get('MAX_FILE_AGE_HOURS', 24))
+CLEANUP_INTERVAL_SECONDS = int(os.environ.get('CLEANUP_INTERVAL_SECONDS', 3600))
+PORT = int(os.environ.get('PORT', 5000))
+HOST = os.environ.get('HOST', '0.0.0.0')
+DEBUG = os.environ.get('FLASK_ENV', 'development') == 'development'
 
 # Indiquer à Flask que les templates sont dans ../web et les fichiers statiques
 app = Flask(__name__, 
@@ -52,6 +56,7 @@ def init_database():
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
     
+    # Table historique
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS history (
             id TEXT PRIMARY KEY,
@@ -63,25 +68,127 @@ def init_database():
             char_count INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             image_path TEXT,
-            thumbnail_path TEXT
+            thumbnail_path TEXT,
+            image_hash TEXT
         )
     ''')
+    
+    # Table cache pour éviter de re-OCR les mêmes images
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ocr_cache (
+            image_hash TEXT PRIMARY KEY,
+            extracted_text TEXT,
+            confidence REAL,
+            word_count INTEGER,
+            char_count INTEGER,
+            line_count INTEGER,
+            detection_count INTEGER,
+            detailed_results TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Index pour recherche rapide par hash
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_hash ON ocr_cache(image_hash)')
     
     conn.commit()
     conn.close()
     print("📦 Base de données initialisée")
+    print("💾 Cache OCR activé")
 
 
-def save_to_history(entry_id, filename, original_filename, text, confidence, word_count, char_count, image_path):
+def save_to_history(entry_id, filename, original_filename, text, confidence, word_count, char_count, image_path, image_hash=None):
     """Sauvegarder une extraction dans l'historique"""
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
     
     cursor.execute('''
-        INSERT INTO history (id, filename, original_filename, extracted_text, confidence, word_count, char_count, image_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (entry_id, filename, original_filename, text, confidence, word_count, char_count, image_path))
+        INSERT INTO history (id, filename, original_filename, extracted_text, confidence, word_count, char_count, image_path, image_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (entry_id, filename, original_filename, text, confidence, word_count, char_count, image_path, image_hash))
     
+    conn.commit()
+    conn.close()
+
+
+# ==========================================
+# CACHE INTELLIGENT - Éviter de re-OCR
+# ==========================================
+
+def calculate_image_hash(filepath):
+    """Calculer un hash unique pour une image"""
+    hasher = hashlib.md5()
+    with open(filepath, 'rb') as f:
+        # Lire par blocs pour les grandes images
+        for chunk in iter(lambda: f.read(8192), b''):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def get_from_cache(image_hash):
+    """Récupérer un résultat OCR depuis le cache"""
+    conn = sqlite3.connect(DATABASE_FILE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM ocr_cache WHERE image_hash = ?', (image_hash,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return {
+            'text': row['extracted_text'],
+            'confidence': row['confidence'],
+            'word_count': row['word_count'],
+            'char_count': row['char_count'],
+            'line_count': row['line_count'],
+            'detection_count': row['detection_count'],
+            'detailed_results': json.loads(row['detailed_results']) if row['detailed_results'] else []
+        }
+    return None
+
+
+def save_to_cache(image_hash, text, stats, detailed_results):
+    """Sauvegarder un résultat OCR dans le cache"""
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT OR REPLACE INTO ocr_cache 
+        (image_hash, extracted_text, confidence, word_count, char_count, line_count, detection_count, detailed_results)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        image_hash,
+        text,
+        stats['avg_confidence'],
+        stats['word_count'],
+        stats['char_count'],
+        stats['line_count'],
+        stats['detection_count'],
+        json.dumps(detailed_results)
+    ))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_cache_stats():
+    """Obtenir les statistiques du cache"""
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT COUNT(*) FROM ocr_cache')
+    count = cursor.fetchone()[0]
+    
+    conn.close()
+    return {'cached_images': count}
+
+
+def clear_cache():
+    """Vider le cache OCR"""
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM ocr_cache')
     conn.commit()
     conn.close()
 
@@ -335,42 +442,74 @@ def calculate_stats(detailed_results, full_text):
 def process_single_image(filepath, filename, original_filename, min_confidence, use_preprocessing, quick_mode):
     """Traiter une seule image et retourner les résultats"""
     
-    if quick_mode:
-        ocr_input = filepath
-        result = reader.readtext(
-            ocr_input,
-            paragraph=False,
-            min_size=20,
-            text_threshold=0.6,
-            low_text=0.3,
-            link_threshold=0.3,
-            canvas_size=1280,
-            mag_ratio=1.0
-        )
-    else:
-        if use_preprocessing:
-            processed_path = os.path.join(PROCESSED_FOLDER, f"pre_{filename}")
-            preprocess_image(filepath, processed_path)
-            ocr_input = processed_path
-        else:
-            ocr_input = filepath
+    # Calculer le hash de l'image pour le cache
+    image_hash = calculate_image_hash(filepath)
+    from_cache = False
+    
+    # Vérifier si l'image est déjà dans le cache
+    cached_result = get_from_cache(image_hash)
+    
+    if cached_result:
+        # Utiliser le résultat en cache
+        ocr_text = cached_result['text']
+        detailed_results = cached_result['detailed_results']
+        stats = {
+            'avg_confidence': cached_result['confidence'],
+            'word_count': cached_result['word_count'],
+            'char_count': cached_result['char_count'],
+            'line_count': cached_result['line_count'],
+            'detection_count': cached_result['detection_count']
+        }
+        from_cache = True
+        print(f"⚡ Cache HIT pour {original_filename}")
         
-        result = reader.readtext(
-            ocr_input,
-            paragraph=False,
-            min_size=10,
-            text_threshold=0.7,
-            low_text=0.4,
-            link_threshold=0.4,
-            canvas_size=2560,
-            mag_ratio=1.5
-        )
+        # On a besoin des résultats OCR bruts pour dessiner les boîtes
+        # Donc on fait quand même un OCR rapide pour les boîtes
+        result = reader.readtext(filepath, paragraph=False, min_size=20, canvas_size=1280, mag_ratio=1.0)
+    else:
+        # Pas en cache - faire l'OCR
+        print(f"🔍 OCR pour {original_filename}...")
+        
+        if quick_mode:
+            ocr_input = filepath
+            result = reader.readtext(
+                ocr_input,
+                paragraph=False,
+                min_size=20,
+                text_threshold=0.6,
+                low_text=0.3,
+                link_threshold=0.3,
+                canvas_size=1280,
+                mag_ratio=1.0
+            )
+        else:
+            if use_preprocessing:
+                processed_path = os.path.join(PROCESSED_FOLDER, f"pre_{filename}")
+                preprocess_image(filepath, processed_path)
+                ocr_input = processed_path
+            else:
+                ocr_input = filepath
+            
+            result = reader.readtext(
+                ocr_input,
+                paragraph=False,
+                min_size=10,
+                text_threshold=0.7,
+                low_text=0.4,
+                link_threshold=0.4,
+                canvas_size=2560,
+                mag_ratio=1.5
+            )
+        
+        sorted_lines = sort_text_by_position(result)
+        ocr_text, detailed_results = format_text_output(sorted_lines, min_confidence)
+        stats = calculate_stats(detailed_results, ocr_text)
+        
+        # Sauvegarder dans le cache
+        save_to_cache(image_hash, ocr_text, stats, detailed_results)
+        print(f"💾 Sauvegardé dans le cache")
     
-    sorted_lines = sort_text_by_position(result)
-    ocr_text, detailed_results = format_text_output(sorted_lines, min_confidence)
-    stats = calculate_stats(detailed_results, ocr_text)
-    
-    # Dessiner les boîtes
+    # Dessiner les boîtes sur l'image
     boxed_filename = f"boxed_{filename}"
     boxed_path = os.path.join(PROCESSED_FOLDER, boxed_filename)
     draw_boxes_on_image(filepath, result, boxed_path)
@@ -385,7 +524,8 @@ def process_single_image(filepath, filename, original_filename, min_confidence, 
         confidence=stats['avg_confidence'],
         word_count=stats['word_count'],
         char_count=stats['char_count'],
-        image_path=filepath
+        image_path=filepath,
+        image_hash=image_hash
     )
     
     return {
@@ -396,7 +536,8 @@ def process_single_image(filepath, filename, original_filename, min_confidence, 
         'stats': stats,
         'detailed_results': detailed_results,
         'uploaded_image': url_for('uploaded_file', filename=filename),
-        'processed_image': url_for('processed_file', filename=boxed_filename)
+        'processed_image': url_for('processed_file', filename=boxed_filename),
+        'from_cache': from_cache
     }
 
 
@@ -432,9 +573,11 @@ def index():
     stats = None
     detailed_results = []
     batch_results = []
+    from_cache = False
     
-    # Récupérer l'historique
+    # Récupérer l'historique et stats cache
     history = get_history(10)
+    cache_stats = get_cache_stats()
     
     if request.method == 'POST':
         files = request.files.getlist('file')
@@ -466,6 +609,7 @@ def index():
                 batch_results.append(result)
         
         # Si une seule image, afficher comme avant
+        from_cache = False
         if len(batch_results) == 1:
             r = batch_results[0]
             ocr_text = r['text']
@@ -474,10 +618,12 @@ def index():
             uploaded_filename = r['original_filename']
             stats = r['stats']
             detailed_results = r['detailed_results']
+            from_cache = r.get('from_cache', False)
             batch_results = []  # Pas de mode batch
         
         # Refresh history
         history = get_history(10)
+        cache_stats = get_cache_stats()
     
     return render_template('index.html', 
                          ocr_text=ocr_text, 
@@ -488,7 +634,9 @@ def index():
                          detailed_results=json.dumps(detailed_results),
                          gpu_available=GPU_AVAILABLE,
                          history=history,
-                         batch_results=batch_results)
+                         batch_results=batch_results,
+                         from_cache=from_cache,
+                         cache_stats=cache_stats)
 
 
 @app.route('/history')
@@ -539,6 +687,20 @@ def api_cleanup():
     """API: Forcer le nettoyage des fichiers"""
     deleted = cleanup_old_files()
     return jsonify({'deleted': deleted})
+
+
+@app.route('/api/cache/stats', methods=['GET'])
+def api_cache_stats():
+    """API: Statistiques du cache"""
+    stats = get_cache_stats()
+    return jsonify(stats)
+
+
+@app.route('/api/cache/clear', methods=['POST'])
+def api_clear_cache():
+    """API: Vider le cache OCR"""
+    clear_cache()
+    return jsonify({'success': True, 'message': 'Cache vidé'})
 
 
 @app.route('/api/ocr', methods=['POST'])
@@ -627,6 +789,8 @@ if __name__ == "__main__":
     print(f"🌐 Langues: Français, Anglais")
     print(f"📦 Base de données: {DATABASE_FILE}")
     print(f"🧹 Nettoyage auto: fichiers > {MAX_FILE_AGE_HOURS}h")
+    print(f"🐳 Mode: {'Production' if not DEBUG else 'Développement'}")
+    print(f"🌐 Serveur: http://{HOST}:{PORT}")
     print("=" * 50)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=DEBUG, host=HOST, port=PORT)

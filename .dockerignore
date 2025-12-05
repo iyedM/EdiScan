@@ -1,0 +1,64 @@
+# ==========================================
+# EdiScan - Docker Ignore
+# ==========================================
+
+# Virtual environment
+ediscan-env/
+venv/
+.env/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Data files (will be mounted as volumes)
+uploads/
+processed/
+models/
+*.db
+
+# Documentation (not needed in container)
+README.md
+docs/
+
+# Tests
+tests/
+test_*.py
+*_test.py
+pytest.ini
+.pytest_cache/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Misc
+*.md
+LICENSE
+Makefile
+
