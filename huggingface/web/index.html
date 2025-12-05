@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdiScan - OCR Intelligent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">📄</div>
+                <h1>EdiScan</h1>
+            </div>
+            <p class="subtitle">Extraction de texte intelligente par OCR</p>
+            <div class="header-badges">
+                <div class="status-badge {{ 'gpu' if gpu_available else 'cpu' }}">
+                    <span class="status-dot"></span>
+                    <span>{{ '⚡ GPU CUDA' if gpu_available else '💻 CPU' }}</span>
+                </div>
+                <a href="/history" class="status-badge history-link">
+                    <span>📚</span>
+                    <span>Historique</span>
+                </a>
+            </div>
+        </header>
+
+        <form method="POST" enctype="multipart/form-data" id="upload-form">
+            <div class="main-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon">📤</div>
+                            <h2 class="card-title">Importer</h2>
+                        </div>
+                        <span class="file-count-badge" id="file-count" style="display: none;">0</span>
+                    </div>
+
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-content">
+                            <div class="drop-icon">🖼️</div>
+                            <p class="drop-text">Glissez vos images ici</p>
+                            <p class="drop-hint">ou cliquez pour parcourir • <strong>Ctrl+V</strong> pour coller</p>
+                            <div class="file-types">
+                                <span class="file-type">PNG</span>
+                                <span class="file-type">JPG</span>
+                                <span class="file-type">WEBP</span>
+                                <span class="file-type">TIFF</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="file" name="file" id="file-input" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp" multiple>
+
+                    <div class="file-list" id="file-list" style="display: none;">
+                        <div class="file-list-header">
+                            <span>📁 Fichiers sélectionnés</span>
+                            <button type="button" class="clear-files-btn" onclick="clearFiles()">✕ Effacer</button>
+                        </div>
+                        <ul class="file-list-items" id="file-list-items"></ul>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-title">Paramètres</div>
+                        
+                        <div class="setting-row">
+                            <span class="setting-label">
+                                <span>🎯</span>
+                                Confiance min.
+                            </span>
+                            <div class="slider-container">
+                                <input type="range" class="slider" name="min_confidence" 
+                                       id="confidence-slider" min="0" max="1" step="0.1" value="0.3">
+                                <span class="slider-value" id="confidence-value">30%</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-row">
+                            <span class="setting-label">
+                                <span>✨</span>
+                                Prétraitement
+                            </span>
+                            <label class="toggle">
+                                <input type="checkbox" name="preprocessing" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row highlight">
+                            <span class="setting-label">
+                                <span>⚡</span>
+                                Copie auto
+                            </span>
+                            <label class="toggle">
+                                <input type="checkbox" id="auto-copy-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="quick_mode" id="quick-mode-input" value="off">
+
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+                            <span>🔍</span>
+                            <span>Analyser</span>
+                        </button>
+                        <button type="submit" class="btn btn-quick" id="quick-btn" disabled onclick="setQuickMode()">
+                            <span>⚡</span>
+                            <span>Rapide</span>
+                        </button>
+                    </div>
+                    <p class="btn-hint">Mode rapide = idéal pour captures terminal</p>
+                </div>
+
+                <div class="card image-display-card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon">🖼️</div>
+                            <h2 class="card-title">{% if batch_results %}Résultats ({{ batch_results|length }}){% else %}Aperçu{% endif %}</h2>
+                        </div>
+                    </div>
+
+                    {% if batch_results %}
+                    <div class="batch-results">
+                        {% for result in batch_results %}
+                        <div class="batch-item" onclick="showBatchResult({{ loop.index0 }})">
+                            <img src="{{ result.uploaded_image }}" alt="{{ result.original_filename }}">
+                            <div class="batch-item-info">
+                                <span class="batch-item-name">{{ result.original_filename }}</span>
+                                <span class="batch-item-stats">{{ result.stats.word_count }} mots • {{ result.stats.avg_confidence }}%</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <script>const batchData = {{ batch_results|tojson|safe }};</script>
+                    {% else %}
+                    
+                    {% if processed_image %}
+                    <div class="image-tabs">
+                        <button type="button" class="image-tab active" onclick="showImage('original')">Original</button>
+                        <button type="button" class="image-tab" onclick="showImage('detected')">Détections</button>
+                    </div>
+                    {% endif %}
+
+                    <div class="image-display">
+                        {% if uploaded_image %}
+                        <img src="{{ uploaded_image }}" alt="Image originale" id="original-img" class="display-img">
+                        {% if processed_image %}
+                        <img src="{{ processed_image }}" alt="Détections" id="detected-img" class="display-img image-hidden">
+                        {% endif %}
+                        {% else %}
+                        <div class="empty-state" id="image-empty">
+                            <div class="empty-icon">🖼️</div>
+                            <p>L'image apparaîtra ici</p>
+                        </div>
+                        {% endif %}
+                        <img src="" alt="Aperçu" id="preview-display" class="display-img image-hidden">
+                    </div>
+
+                    {% if uploaded_filename %}
+                    <div class="image-name" style="margin-top: 12px; border-radius: 8px;">
+                        <span>📎</span>
+                        <span>{{ uploaded_filename }}</span>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon">📝</div>
+                            <h2 class="card-title">Texte extrait</h2>
+                        </div>
+                        {% if stats %}
+                        <div class="badge-group">
+                            {% if from_cache %}
+                            <div class="cache-badge">
+                                <span>⚡</span>
+                                <span>Cache</span>
+                            </div>
+                            {% endif %}
+                            <div class="confidence-badge {{ 'high' if stats.avg_confidence >= 80 else ('medium' if stats.avg_confidence >= 50 else 'low') }}">
+                                <span>🎯</span>
+                                <span>{{ stats.avg_confidence }}%</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if ocr_text or batch_results %}
+                    <div class="text-output" id="text-output">{% if ocr_text %}{{ ocr_text }}{% elif batch_results %}{{ batch_results[0].text }}{% endif %}</div>
+                    
+                    <div class="actions-bar">
+                        <button type="button" class="action-btn" id="copy-btn" onclick="copyText()">
+                            <span>📋</span>
+                            <span>Copier</span>
+                        </button>
+                        <button type="button" class="action-btn" onclick="downloadText()">
+                            <span>💾</span>
+                            <span>Télécharger</span>
+                        </button>
+                        {% if batch_results %}
+                        <button type="button" class="action-btn" onclick="copyAllBatch()">
+                            <span>📑</span>
+                            <span>Tout copier</span>
+                        </button>
+                        {% endif %}
+                        <button type="button" class="action-btn" onclick="clearAll()">
+                            <span>🗑️</span>
+                            <span>Effacer</span>
+                        </button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat">
+                            <div class="stat-value" id="stat-words">{% if stats %}{{ stats.word_count }}{% elif batch_results %}{{ batch_results[0].stats.word_count }}{% else %}0{% endif %}</div>
+                            <div class="stat-label">Mots</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="stat-lines">{% if stats %}{{ stats.line_count }}{% elif batch_results %}{{ batch_results[0].stats.line_count }}{% else %}0{% endif %}</div>
+                            <div class="stat-label">Lignes</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="stat-chars">{% if stats %}{{ stats.char_count }}{% elif batch_results %}{{ batch_results[0].stats.char_count }}{% else %}0{% endif %}</div>
+                            <div class="stat-label">Caractères</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value success" id="stat-detections">{% if stats %}{{ stats.detection_count }}{% elif batch_results %}{{ batch_results[0].stats.detection_count }}{% else %}0{% endif %}</div>
+                            <div class="stat-label">Détections</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    
+                    {% if history %}
+                    <div class="history-preview">
+                        <div class="history-preview-title">
+                            <span>📚 Historique récent</span>
+                            <a href="/history" class="history-link-small">Voir tout →</a>
+                        </div>
+                        <div class="history-list">
+                            {% for item in history[:5] %}
+                            <div class="history-item" onclick="loadFromHistory('{{ item.id }}')">
+                                <div class="history-item-text">{{ item.extracted_text[:50] }}{% if item.extracted_text|length > 50 %}...{% endif %}</div>
+                                <div class="history-item-meta">
+                                    <span>{{ item.word_count }} mots</span>
+                                    <span>{{ item.confidence }}%</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">🔎</div>
+                        <p>Importez une image pour extraire le texte</p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+
+        <footer class="site-footer">
+            <p>© 2025 <strong>Iyed Mohamed</strong> - EdiScan OCR</p>
+        </footer>
+    </div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p class="loading-text">Analyse en cours...</p>
+        <div class="loading-steps">
+            <div class="loading-step" id="step-1">📤 Chargement</div>
+            <div class="loading-step" id="step-2">✨ Prétraitement</div>
+            <div class="loading-step" id="step-3">🔍 Détection</div>
+            <div class="loading-step" id="step-4">📝 Extraction</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">Texte copié !</span>
+    </div>
+
+    {% if ocr_text or batch_results %}
+    <button type="button" class="quick-copy-btn visible pulse" id="quick-copy-btn" onclick="quickCopy()">
+        <span class="icon">📋</span>
+        <span>Copie Rapide</span>
+        <span class="shortcut">Ctrl+Shift+C</span>
+    </button>
+    {% endif %}
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

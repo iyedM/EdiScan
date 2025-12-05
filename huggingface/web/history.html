@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique - EdiScan</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                    <div class="logo-icon">📄</div>
+                    <h1>EdiScan</h1>
+                </a>
+            </div>
+            <p class="subtitle">📚 Historique des extractions</p>
+            <div class="header-badges">
+                <a href="/" class="status-badge history-link">
+                    <span>←</span>
+                    <span>Retour</span>
+                </a>
+                {% if history %}
+                <button onclick="clearAllHistory()" class="status-badge danger-badge">
+                    <span>🗑️</span>
+                    <span>Tout effacer</span>
+                </button>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if history %}
+        <div class="history-grid">
+            {% for item in history %}
+            <div class="history-card">
+                <div class="history-card-header">
+                    <span class="history-card-filename">{{ item.original_filename or item.filename }}</span>
+                    <span class="history-card-date">{{ item.created_at }}</span>
+                </div>
+                
+                <div class="history-card-text">{{ item.extracted_text[:200] }}{% if item.extracted_text|length > 200 %}...{% endif %}</div>
+                
+                <div class="history-card-stats">
+                    <span class="history-stat">
+                        <strong>{{ item.word_count }}</strong> mots
+                    </span>
+                    <span class="history-stat">
+                        <strong>{{ item.char_count }}</strong> car.
+                    </span>
+                    <span class="history-stat confidence">
+                        🎯 <strong>{{ item.confidence }}%</strong>
+                    </span>
+                </div>
+                
+                <div class="history-card-actions">
+                    <button class="action-btn small" onclick="copyHistoryText('{{ item.id }}', `{{ item.extracted_text|replace('`', '\\`')|replace('\n', '\\n') }}`)">
+                        <span>📋</span>
+                        <span>Copier</span>
+                    </button>
+                    <button class="action-btn small" onclick="downloadHistoryText('{{ item.original_filename or item.filename }}', `{{ item.extracted_text|replace('`', '\\`')|replace('\n', '\\n') }}`)">
+                        <span>💾</span>
+                        <span>Télécharger</span>
+                    </button>
+                    <button class="action-btn small danger" onclick="deleteHistoryItem('{{ item.id }}')">
+                        <span>🗑️</span>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-large">
+            <div class="empty-icon-large">📭</div>
+            <h2>Aucun historique</h2>
+            <p>Les extractions OCR apparaîtront ici</p>
+            <a href="/" class="btn btn-primary" style="width: auto; margin-top: 20px;">
+                <span>📤</span>
+                <span>Nouvelle extraction</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">Texte copié !</span>
+    </div>
+
+    <script>
+        function showToast(message, success = true) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('.toast-message').textContent = message;
+            toast.querySelector('.toast-icon').textContent = success ? '✅' : '❌';
+            toast.classList.toggle('success', success);
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 3000);
+        }
+
+        function copyHistoryText(id, text) {
+            // Decode escaped newlines
+            const decodedText = text.replace(/\\n/g, '\n');
+            navigator.clipboard.writeText(decodedText).then(() => {
+                showToast('Texte copié !', true);
+            });
+        }
+
+        function downloadHistoryText(filename, text) {
+            const decodedText = text.replace(/\\n/g, '\n');
+            const blob = new Blob([decodedText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename.replace(/\.[^/.]+$/, '') + '_texte.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Fichier téléchargé !', true);
+        }
+
+        function deleteHistoryItem(id) {
+            if (confirm('Supprimer cette entrée ?')) {
+                fetch(`/api/history/${id}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(() => {
+                        showToast('Entrée supprimée', true);
+                        setTimeout(() => location.reload(), 500);
+                    });
+            }
+        }
+
+        function clearAllHistory() {
+            if (confirm('Supprimer tout l\'historique ?')) {
+                fetch('/api/history/clear', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(() => {
+                        showToast('Historique effacé', true);
+                        setTimeout(() => location.reload(), 500);
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
+
